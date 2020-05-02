@@ -1,0 +1,104 @@
+网络端口映射：
+我们创建了一个 python 应用的容器。
+
+[root@localhost ~]# docker run -d -P training/webapp python app.py
+2db04b72e680de95742f45932f7f967c1fe35d5707f9601519a2c4e95dd14cb8
+另外，我们可以指定容器绑定的网络地址，比如绑定 127.0.0.1。
+
+我们使用 -P 参数创建一个容器，使用 docker ps 可以看到容器端口 5000 绑定主机端口 32768。
+[root@localhost ~]# docker ps
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS                     NAMES
+2db04b72e680        training/webapp     "python app.py"     55 seconds ago      Up 54 seconds       0.0.0.0:32768->5000/tcp   intelligent_aryabhata
+
+我们也可以使用 -p 标识来指定容器端口绑定到主机端口。
+两种方式的区别是:
+-P :是容器内部端口随机映射到主机的高端口。
+-p : 是容器内部端口绑定到指定的主机端口。
+[root@localhost ~]#  docker run -d -p 5000:5000 training/webapp python app.py
+2b9ca031f1cf84c5ad66330809cfcfa0289dc7d2458a1444c21325322f8f6463
+[root@localhost ~]# docker ps
+CONTAINER ID        IMAGE               COMMAND             CREATED              STATUS              PORTS                     NAMES
+2b9ca031f1cf        training/webapp     "python app.py"     18 seconds ago       Up 17 seconds       0.0.0.0:5000->5000/tcp    happy_noyce
+2db04b72e680        training/webapp     "python app.py"     About a minute ago   Up About a minute   0.0.0.0:32768->5000/tcp   intelligent_aryabhata
+另外，我们可以指定容器绑定的网络地址，比如绑定 127.0.0.1。
+
+[root@localhost ~]# docker run -d -p 127.0.0.1:5001:5000 training/webapp python app.py
+7f79d635853a521a70a26f2fbe833414b68b701ed0621fc9ba29fcce0d12c5fa
+[root@localhost ~]# docker ps
+CONTAINER ID        IMAGE               COMMAND             CREATED              STATUS              PORTS                      NAMES
+7f79d635853a        training/webapp     "python app.py"     22 seconds ago       Up 21 seconds       127.0.0.1:5001->5000/tcp   brave_vaughan
+2b9ca031f1cf        training/webapp     "python app.py"     About a minute ago   Up About a minute   0.0.0.0:5000->5000/tcp     happy_noyce
+2db04b72e680        training/webapp     "python app.py"     2 minutes ago        Up 2 minutes        0.0.0.0:32768->5000/tcp    intelligent_aryabhata
+这样我们就可以通过访问 127.0.0.1:5001 来访问容器的 5000 端口。
+
+上面的例子中，默认都是绑定 tcp 端口，如果要绑定 UDP 端口，可以在端口后面加上 /udp。
+[root@localhost ~]# docker run -d -p 127.0.0.1:5000:5000/udp training/webapp python app.py
+c5764a0345bca2f4fdf03902997d5576676f239f82b189c5328b76b070c4f9c0
+[root@localhost ~]# docker ps
+CONTAINER ID        IMAGE               COMMAND             CREATED              STATUS              PORTS                                NAMES
+c5764a0345bc        training/webapp     "python app.py"     19 seconds ago       Up 18 seconds       5000/tcp, 127.0.0.1:5000->5000/udp   agitated_wozniak
+7f79d635853a        training/webapp     "python app.py"     About a minute ago   Up About a minute   127.0.0.1:5001->5000/tcp             brave_vaughan
+2b9ca031f1cf        training/webapp     "python app.py"     About a minute ago   Up About a minute   0.0.0.0:5000->5000/tcp               happy_noyce
+2db04b72e680        training/webapp     "python app.py"     3 minutes ago        Up 3 minutes        0.0.0.0:32768->5000/tcp              intelligent_aryabhata
+
+docker port 命令可以让我们快捷地查看端口的绑定情况。
+[root@localhost ~]#  docker port brave_vaughan 5000
+127.0.0.1:5001
+
+docker容器互联
+端口映射并不是唯一把 docker 连接到另一个容器的方法。
+docker 有一个连接系统允许将多个容器连接在一起，共享连接信息。
+docker 连接会创建一个父子关系，其中父容器可以看到子容器的信息。
+容器命名
+当我们创建一个容器的时候，docker 会自动对它进行命名。另外，我们也可以使用 --name 标识来命名容器，例如：
+[root@localhost ~]# docker run -d -P --name alinup training/webapp python app.py
+8b51a8eacc2a233e900a2764e1149c01d581408c76ce9e83e8b16c73d098c0bf
+
+我们可以使用 docker ps 命令来查看容器名称。
+[root@localhost ~]# docker ps -l
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS                     NAMES
+8b51a8eacc2a        training/webapp     "python app.py"     26 seconds ago      Up 24 seconds       0.0.0.0:32769->5000/tcp   alinup
+
+新建网络
+下面先创建一个新的 Docker 网络。
+$ docker network create -d bridge test-net
+参数说明：
+-d：参数指定 Docker 网络类型，有 bridge、overlay。
+其中 overlay 网络类型用于 Swarm mode，在本小节中你可以忽略它。
+连接容器
+运行一个容器并连接到新建的 test-net 网络:
+$ docker run -itd --name test1 --network test-net ubuntu /bin/bash
+打开新的终端，再运行一个容器并加入到 test-net 网络:
+$ docker run -itd --name test2 --network test-net ubuntu /bin/bash
+下面通过 ping 来证明 test1 容器和 test2 容器建立了互联关系。
+在容器内安装ping命令：
+apt-get update
+apt install iputils-ping
+在 test1 容器输入以下命令：
+root@47c5c5f9f20a:/# ping test2
+PING test2 (172.18.0.3) 56(84) bytes of data.
+64 bytes from test2.test-net (172.18.0.3): icmp_seq=1 ttl=64 time=0.149 ms
+64 bytes from test2.test-net (172.18.0.3): icmp_seq=2 ttl=64 time=0.076 ms
+64 bytes from test2.test-net (172.18.0.3): icmp_seq=3 ttl=64 time=0.075 ms
+同理在 test2 容器也会成功连接到:
+root@0c5c05502285:/# ping test1
+PING test1 (172.18.0.2) 56(84) bytes of data.
+64 bytes from test1.test-net (172.18.0.2): icmp_seq=1 ttl=64 time=0.104 ms
+64 bytes from test1.test-net (172.18.0.2): icmp_seq=2 ttl=64 time=0.074 ms
+64 bytes from test1.test-net (172.18.0.2): icmp_seq=3 ttl=64 time=0.074 ms
+这样，test1 容器和 test2 容器建立了互联关系。
+
+配置 DNS
+我们可以在宿主机的 /etc/docker/daemon.json 文件中增加以下内容来设置全部容器的 DNS：
+{
+  "dns" : [
+    "114.114.114.114",
+    "8.8.8.8"
+  ]
+}
+设置后，启动容器后，DNS 会自动配置为 114.114.114.114 和 8.8.8.8。
+配置完，需要重启 docker 才能生效。
+查看容器的 DNS 是否生效可以使用以下命令，它会输出容器的 DNS 信息：
+[root@localhost docker]# docker run -it --rm ubuntu  cat etc/resolv.conf
+nameserver 114.114.114.114
+nameserver 8.8.8.8
