@@ -1,0 +1,32 @@
+卸载旧版本：
+yum remove docker \
+                  docker-client \
+                  docker-client-latest \
+                  docker-common \
+                  docker-latest \
+                  docker-latest-logrotate \
+                  docker-logrotate \
+                  docker-engine
+
+安装Docker Engine-Community
+使用Docker仓库进行安装
+设置仓库：
+yum install -y yum-utils \
+  device-mapper-persistent-data \
+  lvm2
+
+使用以下命令来设置稳定的仓库：
+yum-config-manager \
+    --add-repo \
+    https://download.docker.com/linux/centos/docker-ce.repo
+
+安装最新版本的 Docker Engine-Community 和 containerd：
+yum install docker-ce docker-ce-cli containerd.io
+如果提示您接受 GPG 密钥，请选是。
+
+启动Docker:
+systemctl start docker
+
+验证是否安装成功：
+docker run ubuntu:15.10 /bin/echo "Hello world"
+输出Hello world代表安装成功。
