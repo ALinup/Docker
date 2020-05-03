@@ -1,0 +1,43 @@
+docker login : 登陆到一个Docker镜像仓库，如果未指定镜像仓库地址，默认为官方仓库 Docker Hub
+docker logout : 登出一个Docker镜像仓库，如果未指定镜像仓库地址，默认为官方仓库 Docker Hub
+参数说明：
+-u :登陆的用户名
+-p :登陆的密码
+实例：
+登陆到Docker Hub
+docker login -u 用户名 -p 密码
+登出Docker Hub
+docker logout
+
+docker pull : 从镜像仓库中拉取或者更新指定镜像
+参数说明：
+-a :拉取所有 tagged 镜像
+--disable-content-trust :忽略镜像的校验,默认开启
+实例：
+从Docker Hub下载java最新版镜像。
+docker pull java
+从Docker Hub下载REPOSITORY为java的所有镜像。
+docker pull -a java
+
+docker push : 将本地的镜像上传到镜像仓库,要先登陆到镜像仓库
+参数说明：
+--disable-content-trust :忽略镜像的校验,默认开启
+实例：
+上传本地镜像myapache:v1到镜像仓库中。
+docker push myapache:v1
+
+docker search : 从Docker Hub查找镜像
+参数说明：
+--automated :只列出 automated build类型的镜像；
+--no-trunc :显示完整的镜像描述；
+-s :列出收藏数不小于指定值的镜像。
+实例：
+从Docker Hub查找所有镜像名包含java，并且收藏数大于10的镜像
+w3cschool@w3cschool:~$ docker search -s 10 java
+NAME                  DESCRIPTION                           STARS   OFFICIAL   AUTOMATED
+java                  Java is a concurrent, class-based...   1037    [OK]       
+anapsix/alpine-java   Oracle Java 8 (and 7) with GLIBC ...   115                [OK]
+develar/java                                                 46                 [OK]
+isuper/java-oracle    This repository contains all java...   38                 [OK]
+lwieske/java-8        Oracle Java 8 Container - Full + ...   27                 [OK]
+nimmis/java-centos    This is docker images of CentOS 7...   13                 [OK]

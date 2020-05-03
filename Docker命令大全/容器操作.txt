@@ -1,0 +1,155 @@
+docker ps : 列出容器
+参数说明：
+-a :显示所有的容器，包括未运行的。
+-f :根据条件过滤显示的内容。
+--format :指定返回值的模板文件。
+-l :显示最近创建的容器。
+-n :列出最近创建的n个容器。
+--no-trunc :不截断输出。
+-q :静默模式，只显示容器编号。
+-s :显示总的文件大小。
+实例：
+列出所有在运行的容器信息。
+w3cschool@w3cschool:~$ docker ps
+CONTAINER ID   IMAGE          COMMAND                ...  PORTS                    NAMES
+09b93464c2f7   nginx:latest   "nginx -g 'daemon off" ...  80/tcp, 443/tcp          myyouj
+96f7f14e99ab   mysql:5.6      "docker-entrypoint.sh" ...  0.0.0.0:3306->3306/tcp   mymysql
+列出最近创建的5个容器信息。
+w3cschool@w3cschool:~$ docker ps -n 5
+CONTAINER ID        IMAGE               COMMAND                   CREATED           
+09b93464c2f7        nginx:latest        "nginx -g 'daemon off"    2 days ago   ...     
+b8573233d675        nginx:latest        "/bin/bash"               2 days ago   ...     
+b1a0703e41e7        nginx:latest        "nginx -g 'daemon off"    2 days ago   ...    
+f46fb1dec520        5c6e1090e771        "/bin/sh -c 'set -x \t"   2 days ago   ...   
+a63b4a5597de        860c279d2fec        "bash"                    2 days ago   ...
+列出所有创建的容器ID。
+w3cschool@w3cschool:~$ docker ps -a -q
+09b93464c2f7
+b8573233d675
+b1a0703e41e7
+f46fb1dec520
+a63b4a5597de
+6a4aa42e947b
+de7bb36e7968
+43a432b73776
+664a8ab1a585
+ba52eb632bbd
+...
+
+docker inspect : 获取容器/镜像的元数据。
+参数说明：
+-f :指定返回值的模板文件。
+-s :显示总的文件大小。
+--type :为指定类型返回JSON。
+实例：
+获取镜像mysql:5.6的元信息。
+w3cschool@w3cschool:~$ docker inspect mysql:5.6
+[
+    {
+        "Id": "sha256:2c0964ec182ae9a045f866bbc2553087f6e42bfc16074a74fb820af235f070ec",
+        "RepoTags": [
+            "mysql:5.6"
+        ],
+        "RepoDigests": [],
+        "Parent": "",
+        "Comment": "",
+        "Created": "2016-05-24T04:01:41.168371815Z",
+        "Container": "e0924bc460ff97787f34610115e9363e6363b30b8efa406e28eb495ab199ca54",
+        "ContainerConfig": {
+            "Hostname": "b0cf605c7757",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "ExposedPorts": {
+                "3306/tcp": {}
+            },
+...
+获取正在运行的容器mymysql的 IP。
+w3cschool@w3cschool:~$ docker inspect -f '{{.NetworkSettings.IPAddress}}' mymysql
+172.17.0.3
+
+docker top :查看容器中运行的进程信息，支持 ps 命令参数。
+容器运行时不一定有/bin/bash终端来交互执行top命令，而且容器还不一定有top命令，可以使用docker top来实现查看container中正在运行的进程。
+实例：
+查看容器mymysql的进程信息。
+w3cschool@w3cschool:~/mysql$ docker top mymysql
+UID    PID    PPID    C      STIME   TTY  TIME       CMD
+999    40347  40331   18     00:58   ?    00:00:02   mysqld
+查看所有运行容器的进程信息。
+for i in  `docker ps |grep Up|awk '{print $1}'`;do echo \ &&docker top $i; done
+
+docker attach :连接到正在运行中的容器。
+要attach上去的容器必须正在运行，可以同时连接上同一个container来共享屏幕（与screen命令的attach类似）。
+官方文档中说attach后可以通过CTRL-C来detach，但实际上经过我的测试，如果container当前在运行bash，CTRL-C自然是当前行的输入，没有退出；如果container当前正在前台运行进程，如输出nginx的access.log日志，CTRL-C不仅会导致退出容器，而且还stop了。这不是我们想要的，detach的意思按理应该是脱离容器终端，但容器依然运行。好在attach是可以带上--sig-proxy=false来确保CTRL-D或CTRL-C不会关闭容器。
+实例：
+容器mynginx将访问日志指到标准输出，连接到容器查看访问信息。
+w3cschool@w3cschool:~$ docker attach --sig-proxy=false mynginx
+192.168.239.1 - - [10/Jul/2016:16:54:26 +0000] "GET / HTTP/1.1" 304 0 "-" "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.93 Safari/537.36" "-"
+
+docker events : 从服务器获取实时事件
+参数说明：
+-f ：根据条件过滤事件；
+--since ：从指定的时间戳后显示所有事件;
+--until ：流水时间显示到指定的时间为止；
+实例：
+显示docker 2016年7月1日后的所有事件。
+w3cschool@w3cschool:~/mysql$ docker events  --since="1467302400"
+2016-07-08T19:44:54.501277677+08:00 network connect 66f958fd13dc4314ad20034e576d5c5eba72e0849dcc38ad9e8436314a4149d4 (container=b8573233d675705df8c89796a2c2687cd8e36e03646457a15fb51022db440e64, name=bridge, type=bridge)
+2016-07-08T19:44:54.723876221+08:00 container start b8573233d675705df8c89796a2c2687cd8e36e03646457a15fb51022db440e64 (image=nginx:latest, name=elegant_albattani)
+2016-07-08T19:44:54.726110498+08:00 container resize b8573233d675705df8c89796a2c2687cd8e36e03646457a15fb51022db440e64 (height=39, image=nginx:latest, name=elegant_albattani, width=167)
+2016-07-08T19:46:22.137250899+08:00 container die b8573233d675705df8c89796a2c2687cd8e36e03646457a15fb51022db440e64 (exitCode=0, image=nginx:latest, name=elegant_albattani)
+...
+显示docker 镜像为mysql:5.6 2016年7月1日后的相关事件。
+w3cschool@w3cschool:~/mysql$ docker events -f "image"="mysql:5.6" --since="1467302400" 
+2016-07-11T00:38:53.975174837+08:00 container start 96f7f14e99ab9d2f60943a50be23035eda1623782cc5f930411bbea407a2bb10 (image=mysql:5.6, name=mymysql)
+2016-07-11T00:51:17.022572452+08:00 container kill 96f7f14e99ab9d2f60943a50be23035eda1623782cc5f930411bbea407a2bb10 (image=mysql:5.6, name=mymysql, signal=9)
+2016-07-11T00:51:17.132532080+08:00 container die 96f7f14e99ab9d2f60943a50be23035eda1623782cc5f930411bbea407a2bb10 (exitCode=137, image=mysql:5.6, name=mymysql)
+2016-07-11T00:51:17.514661357+08:00 container destroy 96f7f14e99ab9d2f60943a50be23035eda1623782cc5f930411bbea407a2bb10 (image=mysql:5.6, name=mymysql)
+2016-07-11T00:57:18.551984549+08:00 container create c8f0a32f12f5ec061d286af0b1285601a3e33a90a08ff1706de619ac823c345c (image=mysql:5.6, name=mymysql)
+2016-07-11T00:57:18.557405864+08:00 container attach c8f0a32f12f5ec061d286af0b1285601a3e33a90a08ff1706de619ac823c345c (image=mysql:5.6, name=mymysql)
+2016-07-11T00:57:18.844134112+08:00 container start c8f0a32f12f5ec061d286af0b1285601a3e33a90a08ff1706de619ac823c345c (image=mysql:5.6, name=mymysql)
+2016-07-11T00:57:19.140141428+08:00 container die c8f0a32f12f5ec061d286af0b1285601a3e33a90a08ff1706de619ac823c345c (exitCode=1, image=mysql:5.6, name=mymysql)
+2016-07-11T00:58:05.941019136+08:00 container destroy c8f0a32f12f5ec061d286af0b1285601a3e33a90a08ff1706de619ac823c345c (image=mysql:5.6, name=mymysql)
+2016-07-11T00:58:07.965128417+08:00 container create a404c6c174a21c52f199cfce476e041074ab020453c7df2a13a7869b48f2f37e (image=mysql:5.6, name=mymysql)
+2016-07-11T00:58:08.188734598+08:00 container start a404c6c174a21c52f199cfce476e041074ab020453c7df2a13a7869b48f2f37e (image=mysql:5.6, name=mymysql)
+2016-07-11T00:58:20.010876777+08:00 container top a404c6c174a21c52f199cfce476e041074ab020453c7df2a13a7869b48f2f37e (image=mysql:5.6, name=mymysql)
+2016-07-11T01:06:01.395365098+08:00 container top a404c6c174a21c52f199cfce476e041074ab020453c7df2a13a7869b48f2f37e (image=mysql:5.6, name=mymysql)
+如果指定的时间是到秒级的，需要将时间转成时间戳。如果时间为日期的话，可以直接使用，如--since="2016-07-01"。
+
+docker logs : 获取容器的日志
+参数说明：
+-f : 跟踪日志输出
+--since :显示某个开始时间的所有日志
+-t : 显示时间戳
+--tail :仅列出最新N条容器日志
+实例：
+跟踪查看容器mynginx的日志输出。
+w3cschool@w3cschool:~$ docker logs -f mynginx
+192.168.239.1 - - [10/Jul/2016:16:53:33 +0000] "GET / HTTP/1.1" 200 612 "-" "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.93 Safari/537.36" "-"
+2016/07/10 16:53:33 [error] 5#5: *1 open() "/usr/share/nginx/html/favicon.ico" failed (2: No such file or directory), client: 192.168.239.1, server: localhost, request: "GET /favicon.ico HTTP/1.1", host: "192.168.239.130", referrer: "http://192.168.239.130/"
+192.168.239.1 - - [10/Jul/2016:16:53:33 +0000] "GET /favicon.ico HTTP/1.1" 404 571 "http://192.168.239.130/" "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.93 Safari/537.36" "-"
+192.168.239.1 - - [10/Jul/2016:16:53:59 +0000] "GET / HTTP/1.1" 304 0 "-" "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.93 Safari/537.36" "-"
+...
+查看容器mynginx从2016年7月1日后的最新10条日志。
+docker logs --since="2016-07-01" --tail=10 mynginx
+
+docker wait : 阻塞运行直到容器停止，然后打印出它的退出代码。
+实例：
+docker wait CONTAINER
+
+docker export :将文件系统作为一个tar归档文件导出到STDOUT。
+参数说明：
+-o :将输入内容写到文件。
+实例：
+将id为a404c6c174a2的容器按日期保存为tar文件。
+w3cschool@w3cschool:~$ docker export -o mysql-`date +%Y%m%d`.tar a404c6c174a2
+w3cschool@w3cschool:~$ ls mysql-`date +%Y%m%d`.tar
+mysql-20160711.tar
+
+docker port :列出指定的容器的端口映射，或者查找将PRIVATE_PORT NAT到面向公众的端口。
+实例：
+查看容器mynginx的端口映射情况。
+w3cschool@w3cschool:~$ docker port mymysql
+3306/tcp -> 0.0.0.0:3306
