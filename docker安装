@@ -41,3 +41,5 @@ docker run ubuntu:15.10 /bin/echo "Hello world"
 yum -y install yum-utils   
 yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo   //设置稳定仓库
 yum install -y docker-ce docker-ce-cli
+systemctl start docker   //启动docker
+systemctl enable docker   //设置开机自启动
